@@ -36,7 +36,9 @@ fun getArduinoValues() {
         if (inStr != null) {
             // println(inStr);
             // get pot serial value
-            potVal = getPotVal(inStr.trim { it <= ' ' })
+            getPotVal(inStr.trim { it <= ' ' })?.also {
+                potVal = it
+            }
         }
     }
 }

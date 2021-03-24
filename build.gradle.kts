@@ -23,6 +23,9 @@ dependencies {
     implementation("io.ktor:ktor-client:1.5.1")
     implementation("io.ktor:ktor-client-cio:1.5.1")
     implementation("io.ktor:ktor-client-jackson:1.5.1")
+
+    // csv
+    implementation("com.github.doyaaaaaken:kotlin-csv-jvm:0.15.1")
 }
 
 tasks {
