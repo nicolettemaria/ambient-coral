@@ -37,22 +37,40 @@ class Sketch(
     private var time = millis()
 
     private var coralDataIndex = 0
-    private var currentDataEntry = coralData[coralDataIndex]
     private fun nextEntry() {
         if (coralDataIndex == coralData.size - 1) {
             // reset to start
             coralDataIndex = 0
         }
-        coralDataIndex++;
-        currentDataEntry = coralData[coralDataIndex]
+        coralDataIndex++
     }
 
     private val tickIntervalMs = 500
 
+    private var lastRawPotVals = mutableListOf<Int>()
+    private var lastPotVal = 0
+
     override fun draw() {
         getArduinoValues()
         // println("pot: $potVal")
-        println("${currentDataEntry.date}: ${currentDataEntry.bleachingAlertArea}")
+        lastRawPotVals.add(potVal)
+        lastRawPotVals = lastRawPotVals.takeLast(10).toMutableList()
+        val resolvedPotVal = lastRawPotVals.average().roundToInt()
+        // println("pot: $resolvedPotVal")
+
+        if (resolvedPotVal >= lastPotVal + 5 || resolvedPotVal <= lastPotVal - 5) {
+            lastPotVal = resolvedPotVal
+
+            // move to new time
+            val newDataIndex = floor(map(resolvedPotVal.toFloat(), 100f, 1023f, 0f, (coralData.size - 1).toFloat())).coerceIn(coralData.indices)
+            coralDataIndex = newDataIndex
+        }
+
+        val currentDataEntry = coralData[coralDataIndex]
+
+        // println("${currentDataEntry.date}: ${currentDataEntry.bleachingAlertArea}")
+
+        // send month/baa over to arduino
         if (currentDataEntry.date.dayOfMonth == 1) {
             sendOverSerial("${currentDataEntry.date.monthValue.toString().padStart(2, '0')}/${currentDataEntry.date.year}" + "\n")
 
@@ -66,7 +84,7 @@ class Sketch(
             sendOverSerial(monthlyBaaMax.toString() + "\n")
         }
 
-        // every tickIntervalMs, do:
+        // every tickIntervalMs (500ms), update lights
         if (millis() > time + tickIntervalMs) {
             val sat = map(currentDataEntry.bleachingAlertArea.toFloat(),0f, 4f, 254f, 0f).roundToInt()
             // from potVal: potVal.mapToRange(0, 1023, 0, 254)
@@ -91,6 +109,8 @@ class Sketch(
 
             time = millis()
         }
+
+
 
         nextEntry()
     }
