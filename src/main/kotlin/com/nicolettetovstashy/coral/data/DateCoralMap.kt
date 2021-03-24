@@ -4,28 +4,26 @@ import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-
-typealias CoralDataMap = LinkedHashMap<LocalDate, DateCoralData>
-
-fun coralDataMapFromCsv(csvFilename: String): CoralDataMap {
+fun coralDataMapFromCsv(csvFilename: String): List<DateCoralData> {
     val fileText = object {}.javaClass.getResource(csvFilename).readText()
 
     val rows: List<Map<String, String>> = csvReader().readAllWithHeader(fileText)
-    val map = LinkedHashMap<LocalDate, DateCoralData>()
+    val list = mutableListOf<DateCoralData>()
 
     for (row in rows) {
         val formatter = DateTimeFormatter.ofPattern("M/d/yyyy")
         val date = LocalDate.parse(row["Date"], formatter)
 
-        map[date] = DateCoralData(
+        list.add(DateCoralData(
+            date = date,
             latitude = row["Latitude"]!!.toDouble(),
             longitude = row["Longitude"]!!.toDouble(),
             seaSurfaceTemperature = row["Sea_Surface_Temperature"]!!.toDouble(),
             hotSpots = row["HotSpots"]!!.toDouble(),
             degreeHeatingWeeks = row["Degree_Heating_Weeks"]!!.toDouble(),
             bleachingAlertArea = row["Bleaching_Alert_Area"]!!.toInt()
-        )
+        ))
     }
 
-    return map
+    return list
 }

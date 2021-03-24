@@ -1,6 +1,6 @@
 package com.nicolettetovstashy.coral.sketch
 
-import com.nicolettetovstashy.coral.data.CoralDataMap
+import com.nicolettetovstashy.coral.data.DateCoralData
 import com.nicolettetovstashy.coral.light.LightState
 import com.nicolettetovstashy.coral.light.LightUtil
 import com.nicolettetovstashy.coral.light.LightUtil.Companion.deriveHue
@@ -14,10 +14,10 @@ var potVal: Int = 1023/2
 
 class Sketch(
     private val lightUtil: LightUtil,
-    private val coralData: CoralDataMap
+    private val coralData: List<DateCoralData>
 ) : PApplet() {
     companion object {
-        fun run(lightUtil: LightUtil, coralData: CoralDataMap) {
+        fun run(lightUtil: LightUtil, coralData: List<DateCoralData>) {
             val art = Sketch(lightUtil, coralData)
             art.runSketch()
         }
@@ -36,14 +36,15 @@ class Sketch(
 
     private var time = millis()
 
-    private var coralDataIterator = coralData.iterator()
-    private var currentDataEntry = coralDataIterator.next()
+    private var coralDataIndex = 0
+    private var currentDataEntry = coralData[coralDataIndex]
     private fun nextEntry() {
-        if (!coralDataIterator.hasNext()) {
+        if (coralDataIndex == coralData.size - 1) {
             // reset to start
-            coralDataIterator = coralData.iterator()
+            coralDataIndex = 0
         }
-        currentDataEntry = coralDataIterator.next()
+        coralDataIndex++;
+        currentDataEntry = coralData[coralDataIndex]
     }
 
     private val tickIntervalMs = 500
@@ -51,14 +52,26 @@ class Sketch(
     override fun draw() {
         getArduinoValues()
         // println("pot: $potVal")
-        println("${currentDataEntry.key}: ${currentDataEntry.value.bleachingAlertArea}")
+        println("${currentDataEntry.date}: ${currentDataEntry.bleachingAlertArea}")
+        if (currentDataEntry.date.dayOfMonth == 1) {
+            sendOverSerial("${currentDataEntry.date.monthValue.toString().padStart(2, '0')}/${currentDataEntry.date.year}" + "\n")
+
+            var monthlyBaaMax = 0
+            for (dataI in coralDataIndex until coralData.size) {
+                val entry = coralData[dataI]
+                if (entry.date.monthValue != currentDataEntry.date.monthValue) break
+                monthlyBaaMax = max(monthlyBaaMax, entry.bleachingAlertArea)
+            }
+
+            sendOverSerial(monthlyBaaMax.toString() + "\n")
+        }
 
         // every tickIntervalMs, do:
         if (millis() > time + tickIntervalMs) {
-            val sat = map(currentDataEntry.value.bleachingAlertArea.toFloat(),0f, 4f, 254f, 0f).roundToInt()
+            val sat = map(currentDataEntry.bleachingAlertArea.toFloat(),0f, 4f, 254f, 0f).roundToInt()
             // from potVal: potVal.mapToRange(0, 1023, 0, 254)
 
-            val month = currentDataEntry.key.monthValue
+            val month = currentDataEntry.date.monthValue
 
             val (light1Hue, light2Hue) = when (month) {
                 in 11..12, in 1..4 -> Pair(25500, 46920) // winter

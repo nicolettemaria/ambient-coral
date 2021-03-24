@@ -67,3 +67,7 @@ fun getSerialParameter(param: String, inStr: String): String? {
     }
     return paramVal
 }
+
+fun sendOverSerial(str: String) {
+    myPort!!.write(str)
+}
